@@ -31,3 +31,4 @@ fetch_symbols <- function() {
 
   DBI::dbGetQuery(con, "SELECT symbol FROM sp500.info;")
 }
+

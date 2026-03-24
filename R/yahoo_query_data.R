@@ -37,3 +37,4 @@ yahoo_query_data <- function(tickers, from, to = as.character(lubridate::today()
   # Combine en un tibble unique
   tidyquant::list_rbind(prices_list)
 }
+
