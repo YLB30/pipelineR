@@ -2,25 +2,34 @@
 % Please edit documentation in R/fetch_symbols.R
 \name{fetch_symbols}
 \alias{fetch_symbols}
-\title{Fetch S&P 500 symbols information}
+\title{Fetch S&P 500 stock symbols}
 \usage{
 fetch_symbols()
 }
 \value{
-A data frame containing all columns from \code{sp500.info}.
+A data frame with one column:
+\describe{
+\item{symbol}{Stock ticker symbol (e.g., "AAPL", "MSFT")}
+}
 }
 \description{
-Retrieves all rows from the \code{sp500.info} table in the database and returns
-them as a data frame.
+Retrieves all stock symbols from the S&P 500 constituents table.
 }
 \details{
-This function opens a database connection with \code{connect_db()}, queries the
-\code{sp500.info} table, and closes the connection automatically with
-\code{on.exit()}.
+Connects to the database using \code{connect_db()}, queries the
+\code{sp500.info} table, and automatically disconnects using
+\code{on.exit()}. Optimized for fast retrieval of symbols only.
 }
 \examples{
 \dontrun{
-fetch_symbols()
+# Fetch all S&P 500 symbols
+symbols <- fetch_symbols()
+
+# View first few symbols
+head(symbols$symbol)
+
+# Count total symbols
+nrow(symbols)
 }
 
 }

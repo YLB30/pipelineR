@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(pipelineR)
+library(PipelineR)
 
-test_check("pipelineR")
+test_check("PipelineR")
