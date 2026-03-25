@@ -1,16 +1,30 @@
 Package: PipelineR
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Pipeline d'Ingestion de Donnees Financieres S&P 500
+Version: 0.1.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Yves", "Student", , "yves.student@example.com", role = c("aut", "cre"))
+Description: 
+    Un pipeline ETL complet pour extraire les donnees boursieres du S&P 500 
+    depuis Yahoo Finance et les injecter dans une base de donnees PostgreSQL 
+    avec gestion des doublons et monitoring des performances.
+License: MIT
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
-URL: https://github.com/YLB30/PipelineR
-BugReports: https://github.com/YLB30/PipelineR/issues
+RoxygenNote: 7.2.3
+Imports: 
+    DBI,
+    RPostgres,
+    tidyquant,
+    dplyr,
+    tidyr,
+    purrr,
+    lubridate,
+    glue,
+    tibble,
+    stringr
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    withr
 Config/testthat/edition: 3
