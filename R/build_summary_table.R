@@ -19,16 +19,10 @@
 #' ))
 #' @export
 build_summary_table <- function() {
-  if (!requireNamespace("tibble", quietly = TRUE)) {
-    stop("Le package tibble est requis (install.packages('tibble')).")
-  }
   tibble::tibble(
-    batch_id = integer(),
-    tickers = character(),      # Liste des tickers comme chaîne (ex: "AAPL,MSFT")
-    n_tickers = integer(),
-    status = character(),       # "success", "error", "warning"
-    error_msg = character(),
-    start_time = POSIXct(),
-    end_time = POSIXct()
+    execution_ts  = lubridate::now(),
+    status        = character(),
+    rows_inserted = integer(),
+    error_msg     = character()
   )
 }

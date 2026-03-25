@@ -18,28 +18,14 @@
 #'
 #' @export
 push_summary_table <- function(con, log_data) {
-  # Requête SQL parameterisée avec glue_sql
-  sql <- glue::glue_sql("
-    INSERT INTO pipeline_logs
-    (pipeline_name, step_name, status, timestamp, message, duration)
-    VALUES ({pipeline_name}, {step_name*}, {status*}, {timestamp*},
-            {message*}, {duration*})
-  ", .con = con)
+  if (nrow(log_data) == 0) return(invisible(0))
 
-  # Exécution pour chaque ligne (ou utiliser dbAppendTable pour lots)
-  n_rows <- nrow(log_data)
-  rows_affected <- 0
-  for (i in 1:n_rows) {
-    rows_affected <- rows_affected + DBI::dbExecute(con, sql,
-                                                    list(
-                                                      pipeline_name = log_data$pipeline_name[i],
-                                                      step_name = log_data$step_name[i],
-                                                      status = log_data$status[i],
-                                                      timestamp = log_data$timestamp[i],
-                                                      message = log_data$message[i],
-                                                      duration = log_data$duration[i]
-                                                    )
-    )
-  }
-  invisible(rows_affected)
+  DBI::dbWriteTable(
+    con,
+    DBI::Id(schema = "student_yves", table = "pipeline_logs"),
+    log_data,
+    append = TRUE,
+    row.names = FALSE
+  )
 }
+

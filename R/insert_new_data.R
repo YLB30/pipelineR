@@ -12,65 +12,46 @@ library(dplyr)
 #' # new_data <- tibble(symbol = "AAPL", date = Sys.Date(), close = 150)
 #' # insert_new_data(new_data, get_db_connection)
 #' @export
-insert_new_data <- function(new_data, con, unique_cols = c("symbol", "date")) {
-  con <- connect_db()
-  on.exit(dbDisconnect(con), add = TRUE)
+insert_new_data <- function(new_data, con, schema = "student_yves") {
 
+  # 1. Validations de base (Inspiré de ta version)
   if (!is.data.frame(new_data) || nrow(new_data) == 0) {
+    message("Aucune donnée à insérer.")
     return(invisible(0))
   }
 
-  # Vérifier les colonnes requises
-  missing_cols <- setdiff(unique_cols, colnames(new_data))
+  required_cols <- c("symbol", "date", "open", "high", "low", "close", "volume")
+  missing_cols <- setdiff(required_cols, colnames(new_data))
+
   if (length(missing_cols) > 0) {
-    stop("Colonnes manquantes dans new_data: {glue_collapse(missing_cols, sep = ', ')}",
-         call. = FALSE)
+    stop(glue::glue("Colonnes manquantes : {paste(missing_cols, collapse = ', ')}"))
   }
 
-  # Étape 1: Identifier les doublons existants
-  where_clause <- glue_collapse(
-    map_chr(unique_cols, ~ glue("{.x} = ?{.x}")),
-    sep = " AND "
-  )
-  placeholders <- map_chr(unique_cols, ~ glue("?{.x}"))
+  # 2. Utilisation de la table temporaire (Ma version pour la performance)
+  temp_table <- paste0("temp_insert_", sample(1000:9999, 1))
 
-  existing_query <- glue_sql("
-    SELECT {glue_collapse(unique_cols, sep = ', ')}
-    FROM data.sp500
-    WHERE {where_clause}
-  ", .con = con)
+  tryCatch({
+    # Upload rapide des données vers PostgreSQL
+    DBI::dbWriteTable(con, temp_table, new_data, temporary = TRUE, overwrite = TRUE)
 
-  existing_keys <- new_data %>%
-    distinct(!!!syms(unique_cols)) %>%
-    dbSendQuery(con, existing_query, .bind = .) %>%
-    dbFetch() %>%
-    as_tibble()
+    # 3. Requête UPSERT (Le moteur SQL gère lui-même les doublons)
+    query <- glue::glue("
+      INSERT INTO {schema}.data_sp500 ({paste(required_cols, collapse = ', ')})
+      SELECT {paste(required_cols, collapse = ', ')}
+      FROM {temp_table}
+      ON CONFLICT (symbol, date) DO NOTHING;
+    ")
 
-  # Étape 2: Filtrer les nouvelles (non-doublons)
-  new_to_insert <- anti_join(new_data, existing_keys, by = unique_cols)
+    n_inserted <- DBI::dbExecute(con, query)
 
-  if (nrow(new_to_insert) == 0) {
-    message("Aucune nouvelle donnée à insérer (toutes doublons).")
-    return(invisible(0))
-  }
+    # Nettoyage
+    DBI::dbRemoveTable(con, temp_table)
 
-  # Étape 3: Insérer avec sqlAppendTableMore (append sécurisé)
-  cols_str <- glue_collapse(colnames(new_to_insert), sep = ", ")
-  placeholders_str <- glue_collapse(rep("?", ncol(new_to_insert)), sep = ", ")
-  values_str <- glue_collapse(
-    map(1:nrow(new_to_insert), ~ glue_collapse(map_chr(colnames(new_to_insert), ~ glue("{new_data[.y, .x][[.y]]}"), .y = .x), sep = ", ")),
-    sep = "), ("
-  )
+    message(glue::glue("{n_inserted} lignes insérées dans {schema}.data_sp500."))
+    return(invisible(n_inserted))
 
-  insert_query <- glue_sql("
-    INSERT INTO data.sp500 ({cols_str})
-    VALUES ({placeholders_str})
-  ", .con = con)
-
-  result <- dbSendStatement(con, insert_query, bind.params = as.list(new_to_insert))
-  n_inserted <- dbGetRowsAffected(result)
-  dbClearResult(result)
-
-  message("{n_inserted} lignes insérées dans data_sp500.")
-  invisible(n_inserted)
+  }, error = function(e) {
+    if (DBI::dbExistsTable(con, temp_table)) DBI::dbRemoveTable(con, temp_table)
+    stop(glue::glue("Erreur lors de l'insertion : {e$message}"))
+  })
 }

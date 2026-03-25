@@ -10,46 +10,15 @@
 #' log_summary(2, "ERROR", "Rate limit", c("GOOGL"))
 #'
 #' @export
-log_summary <- function(batch_num, status, details = "", tickers = "") {
-  timestamp <- Sys.time()
-  log_entry <- tibble(
-    timestamp = timestamp,
-    batch_num = batch_num,
-    status = status,
-    details = details,
-    tickers = paste(tickers, collapse = ", ")
+log_summary <- function(pipeline_name = "PipelineR", step_name, status, start_time, message = NA_character_) {
+  duration <- round(as.numeric(difftime(lubridate::now(), start_time, units = "secs")), 2)
+
+  tibble::tibble(
+    pipeline_name = pipeline_name,
+    step_name     = step_name,
+    status        = status,
+    timestamp     = lubridate::now(),
+    message       = as.character(message),
+    duration      = duration
   )
-
-  # Log console avec couleur simulée via message
-  status_msg <- ifelse(status == "OK", "✅ OK", "❌ ERROR")
-  msg <- sprintf("[%s] Batch %d %s - %s | Tickers: %s",
-                 format(timestamp, "%H:%M:%S"),
-                 batch_num, status_msg, details, paste(tickers[1:min(3, length(tickers))], collapse = ", "))
-  message(msg)
-
-  # Ajoute au log global (singleton pattern simple)
-  if (!exists("log_df", envir = .GlobalEnv)) {
-    assign("log_df", log_entry, envir = .GlobalEnv)
-  } else {
-    assign("log_df", bind_rows(get("log_df", envir = .GlobalEnv), log_entry), envir = .GlobalEnv)
-  }
-
-  invisible(log_df)
 }
-
-# Fonction utilitaire pour afficher/reset le log final
-log_print <- function() {
-  if (exists("log_df", envir = .GlobalEnv)) {
-    print(get("log_df", envir = .GlobalEnv))
-    cat(sprintf("\nRésumé: %d OK, %d ERROR\n",
-                sum(get("log_df", envir = .GlobalEnv)$status == "OK"),
-                sum(get("log_df", envir = .GlobalEnv)$status == "ERROR")))
-  } else {
-    cat("Aucun log.\n")
-  }
-}
-
-log_reset <- function() {
-  if (exists("log_df", envir = .GlobalEnv)) rm("log_df", envir = .GlobalEnv)
-}
-
